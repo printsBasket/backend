@@ -361,18 +361,28 @@ const updateProduct = asyncHandler(async (req, res) => {
         product.technology = technology ? parseArrayField(technology) : product.technology;
         product.usageCategory = usageCategory ? parseArrayField(usageCategory) : product.usageCategory;
         product.allInOneType = allInOneType ? parseArrayField(allInOneType) : product.allInOneType;
-        product.wireless = wireless ?? product.wireless;
+        product.wireless = wireless !== undefined ? wireless : product.wireless;
         product.mainFunction = mainFunction ? parseArrayField(mainFunction) : product.mainFunction;
 
         // Image Update Logic
         let currentImages = [];
         if (req.body.existingImages) {
-            currentImages = typeof req.body.existingImages === 'string' ? JSON.parse(req.body.existingImages) : req.body.existingImages;
-        } else if (req.body.images) {
-            // Fallback for backward compatibility or direct API usage
-            currentImages = typeof req.body.images === 'string' ? JSON.parse(req.body.images) : req.body.images;
+            try {
+                currentImages = typeof req.body.existingImages === 'string' 
+                    ? JSON.parse(req.body.existingImages) 
+                    : req.body.existingImages;
+            } catch (err) {
+                console.error('Error parsing existingImages:', err);
+                currentImages = Array.isArray(product.images) ? product.images : [];
+            }
+        } else if (req.body.images && typeof req.body.images === 'string' && req.body.images.startsWith('[')) {
+            try {
+                currentImages = JSON.parse(req.body.images);
+            } catch {
+                currentImages = Array.isArray(product.images) ? product.images : [];
+            }
         } else {
-            currentImages = product.images;
+            currentImages = Array.isArray(product.images) ? product.images : [];
         }
 
         if (req.files && req.files.length > 0) {
